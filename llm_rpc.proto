@@ -1,0 +1,32 @@
+syntax = "proto3";
+package llm_rpc.api;
+
+// The langchain service definition.
+
+message GenerateRequest {
+    repeated string prompts = 1;
+    repeated string stop = 2;
+}
+
+message GenerateReply {
+    message Generation {
+        string text = 1;
+        // JSON object with additional information about the generation.
+        string generation_info = 2;
+    }
+    message GenerationList {
+        repeated Generation generations = 1;
+    }
+    repeated GenerationList generations = 1;
+}
+
+message LLMTypeRequest {}
+
+message LLMTypeReply {
+    string llm_type = 1;
+}
+
+service RemoteLLM {
+    rpc Generate(GenerateRequest) returns (GenerateReply) {}
+    rpc GetLlmType(LLMTypeRequest) returns (LLMTypeReply) {}
+}
