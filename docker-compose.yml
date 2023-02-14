@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  web:
+    command: ["python3", "huggingface_service.py"]
+    build: .
+    ports:
+      - "50055:50055"
+    volumes:
+      - ./docker/cache:/app/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['0']
+              capabilities: [gpu]
