@@ -39,7 +39,7 @@ class ClientLLM(BaseLLM):
         client = RemoteLLMStub(Channel(**kwargs))
         super().__init__(client=client)
 
-    def generate(
+    def _generate(
         self, prompts: List[str], stop: Optional[List[str]] = None
     ) -> LLMResult:
         loop = asyncio.get_event_loop()
@@ -106,7 +106,7 @@ class ServiceLLM():
 '''
 This shouldn't exist, but for some reason the TextGenerationPipeline doesn't work when it's in the normal service class.
 '''
-class ServiceGPTNeo(): 
+class ServiceHuggingFace(): 
     generator: TextGenerationPipeline
     max_length: int 
     num_sequences: int
@@ -122,6 +122,7 @@ class ServiceGPTNeo():
         print(request.prompts)
         generations = []
         for prompt in request.prompts:
+            
             generated = self.generator(
                 prompt,
                 max_length=self.max_length,
@@ -135,9 +136,7 @@ class ServiceGPTNeo():
             )
             generated = [GenerateReplyGeneration(text=gen['generated_text'][len(prompt):]) for gen in generated]
             generations.append(GenerateReplyGenerationList(generations=generated))
-        print("generations",generations)
         reply = GenerateReply(generations=generations)
-        print("reply", reply)
         await stream.send_message(reply)
 
     async def GetLlmType(self, stream: "grpclib.server.Stream[LLMTypeRequest, LLMTypeReply]") -> None:

@@ -1,3 +1,3 @@
-from .llm_class import ClientLLM, ServiceLLM, ServiceGPTNeo
+from .llm_class import ClientLLM, ServiceLLM, ServiceHuggingFace
 
-__all__ = ["ClientLLM", "ServiceLLM", "ServiceGPTNeo"]
+__all__ = ["ClientLLM", "ServiceLLM", "ServiceHuggingFace"]
