@@ -30,6 +30,7 @@ async def main():
     tokenizer = AutoTokenizer.from_pretrained(current, torch_dtype=torch.float16)
     server = Server([remote_llm.ServiceHuggingFace(model=model, tokenizer=tokenizer)])
     with graceful_exit([server]):
+        #await server.start(address, port, ssl=context)
         await server.start(address, port)
         await server.wait_closed()
 

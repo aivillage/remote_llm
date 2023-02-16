@@ -17,11 +17,13 @@ context.load_cert_chain(keyfile=client_key, certfile=client_cert)
 
 logger = logging.getLogger(__name__)
 
+
 async def main():
     # Create a client to the remote LLM.
     client = ClientLLM(
         host="localhost",
         port=50055,
+        #ssl=context,
     )
 
     # Generate text.
