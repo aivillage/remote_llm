@@ -1,11 +1,11 @@
 syntax = "proto3";
 package llm_rpc.api;
 
-// The langchain service definition.
 
 message GenerateRequest {
-    repeated string prompts = 1;
-    repeated string stop = 2;
+    optional string api_key = 1;
+    repeated string prompts = 2;
+    repeated string stop = 3;
 }
 
 message GenerateReply {
@@ -20,7 +20,9 @@ message GenerateReply {
     repeated GenerationList generations = 1;
 }
 
-message LLMTypeRequest {}
+message LLMTypeRequest {
+    optional string api_key = 1;
+}
 
 message LLMTypeReply {
     string llm_type = 1;

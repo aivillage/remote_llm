@@ -1,107 +1,30 @@
-"""Wrapper around OpenAI APIs."""
+"""Wrapper around Huggingface."""
 import logging
-import sys
 from typing import (
-    Any,
-    Dict,
     List,
+    Dict,
     Optional,
 )
 from grpclib.client import Channel
-from transformers import GPTNeoForCausalLM, AutoTokenizer, TextGenerationPipeline
+import grpclib
+from transformers import TextGenerationPipeline
 
-from langchain.llms.base import BaseLLM
-from langchain.schema import Generation, LLMResult
 from .llm_rpc.api import RemoteLLMStub, GenerateRequest, GenerateReply, GenerateReplyGeneration, GenerateReplyGenerationList, LLMTypeRequest, LLMTypeReply
+from .schema import Generation, LLMResult
 
 import asyncio
+try:
+    loop = asyncio.get_event_loop()
+except RuntimeError as e:
+    if str(e).startswith('There is no current event loop in thread'):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    else:
+        raise
 import nest_asyncio
 nest_asyncio.apply()
 
-import grpclib
-
 logger = logging.getLogger(__name__)
-
-def pack_generation_list(generations: List[Generation]) -> GenerateReplyGenerationList:
-    generations = [GenerateReplyGeneration(text=g.text, generation_info=g.generation_info) for g in generations]
-    return GenerateReplyGenerationList(generations=generations)
-
-def unpack_generation_list(generations: GenerateReplyGenerationList) -> List[Generation]:
-    return [Generation(text=g.text, generation_info=g.generation_info) for g in generations.generations]
-
-class ClientLLM(BaseLLM):
-    """
-    Remote LLM. Uses a GRPC server to generate text.
-    """
-    client: RemoteLLMStub  #: :meta private:
-    
-    def __init__(self, **kwargs: Any):
-        client = RemoteLLMStub(Channel(**kwargs))
-        super().__init__(client=client)
-
-    def _generate(
-        self, prompts: List[str], stop: Optional[List[str]] = None
-    ) -> LLMResult:
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete(self._agenerate(prompts, stop))
-
-    async def _agenerate(
-        self, prompts: List[str], stop: Optional[List[str]] = None
-    ) -> LLMResult:
-        """Generate text using the remote llm."""
-        result = await self.client.generate(prompts=prompts, stop=stop)
-        return LLMResult(generations=[unpack_generation_list(g) for g in result.generations])
-
-    @property
-    def _llm_type(self) -> str:
-        loop = asyncio.get_event_loop()
-        remote_type = loop.run_until_complete(self.client.get_llm_type())
-        return f"remote:{remote_type.llm_type}"
-    
-    def save(self, file_path: Any) -> None:
-        raise NotImplementedError("Cannot save remote LLMs.")
-    
-
-class ServiceLLM(): 
-    llm: BaseLLM
-
-    def __init__(self, llm: BaseLLM):
-        self.llm = llm
-
-    async def Generate(self, stream: "grpclib.server.Stream[GenerateRequest, GenerateReply]") -> None:
-        request = await stream.recv_message()
-        print(request.prompts)
-        try: 
-            generations = await self.llm._agenerate(request.prompts, request.stop)
-        except NotImplementedError:
-            generations = self.llm._generate(request.prompts, request.stop)
-        print(f"Generated {len(generations.generations)} generations.")
-        print("generations",generations)
-        generations = [pack_generation_list(g) for g in generations.generations]
-        reply = GenerateReply(generations=generations)
-        print("reply", reply)
-        await stream.send_message(reply)
-
-    async def GetLlmType(self, stream: "grpclib.server.Stream[LLMTypeRequest, LLMTypeReply]") -> None:
-        request = await stream.recv_message()
-        msg = LLMTypeReply(llm_type=self.llm._llm_type)
-        await stream.send_message(msg)
-
-    def __mapping__(self) -> Dict[str, "grpclib.const.Handler"]:
-        return {
-            "/llm_rpc.api.RemoteLLM/Generate": grpclib.const.Handler(
-                self.Generate,
-                grpclib.const.Cardinality.UNARY_UNARY,
-                GenerateRequest,
-                GenerateReply,
-            ),
-            "/llm_rpc.api.RemoteLLM/GetLlmType": grpclib.const.Handler(
-                self.GetLlmType,
-                grpclib.const.Cardinality.UNARY_UNARY,
-                LLMTypeRequest,
-                LLMTypeReply,
-            )
-        }
 
 '''
 This shouldn't exist, but for some reason the TextGenerationPipeline doesn't work when it's in the normal service class.
@@ -110,16 +33,24 @@ class ServiceHuggingFace():
     generator: TextGenerationPipeline
     max_length: int 
     num_sequences: int
+    api_key: Optional[str]
 
-    def __init__(self, *, model, tokenizer, max_length: int = 100, num_sequences: int = 1):
+    def __init__(self, *, model, tokenizer, max_length: int = 100, num_sequences: int = 1, api_key: Optional[str] = None):
         self.generator = TextGenerationPipeline(model=model, tokenizer=tokenizer, device=0)
         self.max_length = max_length
         self.num_sequences = num_sequences
+        self.api_key = api_key
 
+    def check_key(self, api_key: Optional[str]) -> bool:
+        if self.api_key is None:
+            return True
+        return self.api_key == api_key
 
     async def Generate(self, stream: "grpclib.server.Stream[GenerateRequest, GenerateReply]") -> None:
         request = await stream.recv_message()
         print(request.prompts)
+        if not self.check_key(request.api_key):
+            return None
         generations = []
         for prompt in request.prompts:
             
@@ -141,6 +72,8 @@ class ServiceHuggingFace():
 
     async def GetLlmType(self, stream: "grpclib.server.Stream[LLMTypeRequest, LLMTypeReply]") -> None:
         request = await stream.recv_message()
+        if not self.check_key(request.api_key):
+            return None
         msg = LLMTypeReply(llm_type=self.llm._llm_type)
         await stream.send_message(msg)
 
@@ -159,3 +92,31 @@ class ServiceHuggingFace():
                 LLMTypeReply,
             )
         }
+
+logger = logging.getLogger(__name__)
+
+def unpack_generation_list(generations: GenerateReplyGenerationList) -> List[Generation]:
+    return [Generation(text=g.text, generation_info=g.generation_info) for g in generations.generations]
+
+class ClientLLM:
+    """
+    Remote LLM. Uses a GRPC server to generate text.
+    """
+    client: RemoteLLMStub  #: :meta private:
+    
+    def __init__(self, channel: Channel, api_key: str = None):
+        self.client = RemoteLLMStub(channel)
+        self.api_key = api_key
+
+    def generate_text(
+        self, prompts: List[str],
+    ) -> LLMResult:
+        return loop.run_until_complete(self.async_generate_text(prompts))
+
+    async def async_generate_text(
+        self, prompts: List[str],
+    ) -> LLMResult:
+        """Generate text using the remote llm."""
+        result = await self.client.generate(prompts=prompts)
+        print(result)
+        return LLMResult(generations=[unpack_generation_list(g) for g in result.generations], api_key=self.api_key)
