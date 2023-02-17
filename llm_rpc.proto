@@ -3,7 +3,7 @@ package llm_rpc.api;
 
 
 message GenerateRequest {
-    optional string api_key = 1;
+    string api_key = 1;
     repeated string prompts = 2;
     repeated string stop = 3;
 }
@@ -21,7 +21,7 @@ message GenerateReply {
 }
 
 message LLMTypeRequest {
-    optional string api_key = 1;
+    string api_key = 1;
 }
 
 message LLMTypeReply {

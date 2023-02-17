@@ -6,8 +6,9 @@ services:
     build: .
     ports:
       - "50055:50055"
+    # Reuse your huggingface cache to avoid downloading models again
     volumes:
-      - ./docker/cache:/app/models
+      - ~/.cache/huggingface/hub:/app/models
     deploy:
       resources:
         reservations:
