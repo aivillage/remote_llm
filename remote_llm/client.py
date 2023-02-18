@@ -36,14 +36,22 @@ class ClientLLM:
         self.client = RemoteLLMStub(channel)
         self.api_key = api_key
 
-    def generate_text(
-        self, prompts: List[str],
-    ) -> LLMResult:
-        return loop.run_until_complete(self.async_generate_text(prompts))
-
-    async def async_generate_text(
+    async def generate_text(
         self, prompts: List[str], stop: Optional[List[str]] = None
     ) -> LLMResult:
         """Generate text using the remote llm."""
         result = await self.client.generate(prompts=prompts, stop=stop, api_key=self.api_key)
         return LLMResult(generations=[unpack_generation_list(g) for g in result.generations])
+    
+    async def model_info(self) -> str:
+        """Get model info."""
+        result = await self.client.get_llm_type(api_key=self.api_key)
+        return result.llm_type
+    
+    def sync_generate_text(
+        self, prompts: List[str],
+    ) -> LLMResult:
+        return loop.run_until_complete(self.generate_text(prompts))
+    
+    def sync_model_info(self) -> str:
+        return loop.run_until_complete(self.model_info())

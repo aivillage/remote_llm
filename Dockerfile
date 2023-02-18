@@ -1,7 +1,6 @@
 FROM nvidia/cuda:11.8.0-devel-ubuntu22.04
 
 WORKDIR /remote_llm
-ENV TRANSFORMERS_CACHE="/app/models/cache"
 RUN apt-get update && apt-get install -y python3 python3-pip
 
 COPY requirements.txt /remote_llm/requirements.txt
@@ -10,7 +9,7 @@ COPY requirements.txt /remote_llm/requirements.txt
 RUN pip install -r requirements.txt
 RUN pip install transformers torch
 
-COPY remote_llm remote_llm/remote_llm
+COPY remote_llm remote_llm/
 COPY huggingface_service.py /remote_llm/huggingface_service.py
 EXPOSE 50055
 # Run the service

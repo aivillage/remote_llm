@@ -68,7 +68,8 @@ class ServiceHuggingFace():
         if user is None:
             return stream.send_message(LLMTypeReply())
         logging.info(f"Getting LLM type for {user}")
-        msg = LLMTypeReply(llm_type=self.llm._llm_type)
+        model_name = self.model.config._name_or_path
+        msg = LLMTypeReply(llm_type=model_name)
         await stream.send_message(msg)
 
     def __mapping__(self) -> Dict[str, "grpclib.const.Handler"]:
