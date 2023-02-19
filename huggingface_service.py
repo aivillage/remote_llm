@@ -16,7 +16,7 @@ current = small
 async def main():
     print('starting server')
     keystore = ApiKeystore("sqlite:///./keystore.db")
-    keystore.add_admin_key(name="admin", key="482fdd5f-b59c-43de-98b9-4e19a21b4d85")
+    #keystore.add_admin_key(name="admin", key="482fdd5f-b59c-43de-98b9-4e19a21b4d85")
 
     model = AutoModelForCausalLM.from_pretrained(current, torch_dtype=torch.float16)
     tokenizer = AutoTokenizer.from_pretrained(current, torch_dtype=torch.float16)

@@ -7,8 +7,10 @@ services:
     ports:
       - "50055:50055"
     # Reuse your huggingface cache to avoid downloading models again
+    environment:
+      - HF_DATASETS_CACHE=/app/models/cache
     volumes:
-      - ~/.cache/huggingface/hub:/app/models
+      - ~/.cache/huggingface/hub:/app/models/cache
     deploy:
       resources:
         reservations:

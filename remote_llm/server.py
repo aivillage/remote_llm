@@ -41,7 +41,7 @@ class ServiceHuggingFace():
         request = await stream.recv_message()
         user = self.check_key(request.api_key)
         if user is None:
-            return stream.send_message(GenerateReply())
+            await stream.send_message(GenerateReply())
         
         generations = []
         for prompt in request.prompts:
