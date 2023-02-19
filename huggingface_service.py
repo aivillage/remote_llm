@@ -14,13 +14,14 @@ xlarge = "EleutherAI/gpt-neox-20b"
 current = small
 
 async def main():
-    print('starting server')
+    print("Loading model.")
     keystore = ApiKeystore("sqlite:///./keystore.db")
     #keystore.add_admin_key(name="admin", key="482fdd5f-b59c-43de-98b9-4e19a21b4d85")
 
     model = AutoModelForCausalLM.from_pretrained(current, torch_dtype=torch.float16)
     tokenizer = AutoTokenizer.from_pretrained(current, torch_dtype=torch.float16)
     server = Server([ServiceHuggingFace(model=model, tokenizer=tokenizer, keystore=keystore)])
+    print('Starting server.')
     with graceful_exit([server]):
         await server.start(address, port)
         await server.wait_closed()

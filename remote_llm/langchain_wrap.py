@@ -33,13 +33,13 @@ class ClientLangchain(BaseLLM):
         self, prompts: List[str], stop: Optional[List[str]] = None
     ) -> LLMResult:
         loop = asyncio.get_event_loop()
-        return loop.run_until_complete(self.client.async_generate_text(prompts, stop))
+        return loop.run_until_complete(self.client.generate_text(prompts, stop))
 
     async def _agenerate(
         self, prompts: List[str], stop: Optional[List[str]] = None
     ) -> LLMResult:
         """Generate text using the remote llm."""
-        result = await self.client.async_generate_text(prompts=prompts, stop=stop)
+        result = await self.client.generate_text(prompts=prompts, stop=stop)
         return LLMResult(generations=[unpack_generation_list(g) for g in result.generations])
 
     @property

@@ -29,7 +29,9 @@ class ApiKeystore():
     
     def check_key(self, *, key: str) -> Optional[str]:
         with Session(self.engine) as session:
-            return session.query(ApiKeys.name).filter(ApiKeys.key == key).first()
+            results = session.query(ApiKeys.name).filter(ApiKeys.key == key).first()
+            print(f"Results: {results}")
+            return results
 
     def add_admin_key(self, *, name: str, key: str) -> Optional[str]:
         with Session(self.engine) as session:
