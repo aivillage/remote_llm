@@ -8,7 +8,7 @@ from typing import (
 
 from langchain.llms.base import BaseLLM
 from .llm_rpc.api import GenerateReplyGenerationList
-from .schema import Generation, LLMResult
+from .schema import Generation, LLMResult, unpack_result
 from .client import ClientLLM
 
 import asyncio
@@ -17,8 +17,6 @@ nest_asyncio.apply()
 
 logger = logging.getLogger(__name__)
 
-def unpack_generation_list(generations: GenerateReplyGenerationList) -> List[Generation]:
-    return [Generation(text=g.text, generation_info=g.generation_info) for g in generations.generations]
 
 class ClientLangchain(BaseLLM):
     """
@@ -40,7 +38,7 @@ class ClientLangchain(BaseLLM):
     ) -> LLMResult:
         """Generate text using the remote llm."""
         result = await self.client.generate_text(prompts=prompts, stop=stop)
-        return LLMResult(generations=[unpack_generation_list(g) for g in result.generations])
+        return unpack_result(result)
 
     @property
     def _llm_type(self) -> str:

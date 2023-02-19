@@ -30,8 +30,9 @@ class ApiKeystore():
     def check_key(self, *, key: str) -> Optional[str]:
         with Session(self.engine) as session:
             results = session.query(ApiKeys.name).filter(ApiKeys.key == key).first()
-            print(f"Results: {results}")
-            return results
+            if results is None:
+                return None
+            return results[0] # results is a tuple, so we need to index it.
 
     def add_admin_key(self, *, name: str, key: str) -> Optional[str]:
         with Session(self.engine) as session:
@@ -64,7 +65,7 @@ class ApiKeystore():
         
     def get_key(self, *, name: str) -> Optional[str]:
         with Session(self.engine) as session:
-            return session.query(ApiKeys.key).filter(ApiKeys.name == name).first()
+            return session.query(ApiKeys.key).filter(ApiKeys.name == name).first()[0]
 
 # A simple CLI to add/remove keys.
 def main():

@@ -1,33 +1,29 @@
 """Wrapper around Huggingface."""
+
 import logging
 from typing import (
+    List,
     Dict,
     Optional,
 )
 import grpclib
 from transformers import TextGenerationPipeline, AutoTokenizer, AutoModelForCausalLM
 
-from .llm_rpc.api import GenerateRequest, GenerateReply, GenerateReplyGeneration, GenerateReplyGenerationList, LLMTypeRequest, LLMTypeReply
+from .base_llm import AbstractLLM
+from .llm_rpc.api import GenerateRequest, GenerateReply, LLMTypeRequest, LLMTypeReply
+from .schema import Generation, LLMResult, pack_result
 from .keystore import ApiKeystore
 logger = logging.getLogger(__name__)
-
+        
 '''
 This shouldn't exist, but for some reason the TextGenerationPipeline doesn't work when it's in the normal service class.
 '''
-class ServiceHuggingFace():
-    model: AutoModelForCausalLM
-    tokenizer: AutoTokenizer
-    generator: TextGenerationPipeline
-    max_length: int 
-    num_sequences: int
+class LLMService():
+    base_llm: AbstractLLM
     keystore: Optional[ApiKeystore]
 
-    def __init__(self, *, model, tokenizer, max_length: int = 100, num_sequences: int = 1, keystore: Optional[ApiKeystore] = None):
-        self.model = model
-        self.tokenizer = tokenizer
-        self.generator = TextGenerationPipeline(model=model, tokenizer=tokenizer, device=0)
-        self.max_length = max_length
-        self.num_sequences = num_sequences
+    def __init__(self, *, llm: AbstractLLM, keystore: Optional[ApiKeystore] = None):
+        self.base_llm = llm
         self.keystore = keystore
 
     def check_key(self, api_key: Optional[str]) -> Optional[str]:
@@ -41,36 +37,23 @@ class ServiceHuggingFace():
         request = await stream.recv_message()
         user = self.check_key(request.api_key)
         if user is None:
+            logging.info(f"Invalid API key, {request.api_key}")
+            logging.info(f"Valid keys: {self.keystore.get_all_keys()}")
             await stream.send_message(GenerateReply())
             return
-        
-        generations = []
-        for prompt in request.prompts:
-            logging.info(f"Generating text for {user} with prompt: {prompt}")
-            generated = self.generator(
-                prompt,
-                max_length=self.max_length,
-                do_sample=True,
-                top_k=50,
-                top_p=0.95,
-                num_return_sequences=self.num_sequences,
-                repetition_penalty=1.2,
-                temperature=1.0,
-                no_repeat_ngram_size=3,
-            )
-            generated = [GenerateReplyGeneration(text=gen['generated_text'][len(prompt):]) for gen in generated]
-            generations.append(GenerateReplyGenerationList(generations=generated))
-        reply = GenerateReply(generations=generations)
+        logging.info(f"Generating text for {user}")
+        result = self.base_llm.generate(prompts=request.prompts, stop=request.stop)
+        reply = pack_result(result)
         await stream.send_message(reply)
 
     async def GetLlmType(self, stream: "grpclib.server.Stream[LLMTypeRequest, LLMTypeReply]") -> None:
         request = await stream.recv_message()
         user = self.check_key(request.api_key)
         if user is None:
+            logging.info(f"Invalid API key, {request.api_key}")
             return stream.send_message(LLMTypeReply())
         logging.info(f"Getting LLM type for {user}")
-        model_name = self.model.config._name_or_path
-        msg = LLMTypeReply(llm_type=model_name)
+        msg = LLMTypeReply(llm_type=self.base_llm.llm_name())
         await stream.send_message(msg)
 
     def __mapping__(self) -> Dict[str, "grpclib.const.Handler"]:
