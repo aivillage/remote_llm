@@ -31,6 +31,11 @@ class GPTNeoWrap(AbstractLLM):
             generated = self.generator(
                 prompt,
                 max_new_tokens=self.max_new_tokens,
+                num_return_sequences=self.num_sequences,
+                do_sample=True,
+                top_k=50,
+                top_p=0.95,
+                repetition_penalty=1.0,
             )
             generated = [Generation(text=gen['generated_text'][len(prompt):]) for gen in generated]
             generations.append(generated)
