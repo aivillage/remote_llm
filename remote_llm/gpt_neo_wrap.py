@@ -17,15 +17,15 @@ class GPTNeoWrap(AbstractLLM):
     generator: TextGenerationPipeline
     max_new_tokens: int 
     num_sequences: int
-    max_tokens: int
+    max_length: int
 
-    def __init__(self, *, model: AutoModelForCausalLM, tokenizer: AutoTokenizer, max_new_tokens = 50, max_tokens = 512, num_sequences = 1):
+    def __init__(self, *, model: AutoModelForCausalLM, tokenizer: AutoTokenizer, max_new_tokens = 50, max_length = 512, num_sequences = 1):
         self.model = model
         self.tokenizer = tokenizer
         self.generator = TextGenerationPipeline(model=model, tokenizer=tokenizer, device=0)
         self.max_new_tokens = max_new_tokens
         self.num_sequences = num_sequences
-        self.max_tokens = max_tokens
+        self.max_length = max_length
 
     def generate(self, prompts: List[str], stop: Optional[List[str]] = None) -> LLMResult:
         generations = []
@@ -33,7 +33,7 @@ class GPTNeoWrap(AbstractLLM):
             generated = self.generator(
                 prompt,
                 max_new_tokens=self.max_new_tokens,
-                max_tokens=self.max_tokens,
+                max_length=self.max_length,
             )
             generated = [Generation(text=gen['generated_text'][len(prompt):]) for gen in generated]
             generations.append(generated)
