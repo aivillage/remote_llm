@@ -18,7 +18,7 @@ class GPTNeoWrap(AbstractLLM):
     max_new_tokens: int 
     num_sequences: int
 
-    def __init__(self, *, model: AutoModelForCausalLM, tokenizer: AutoTokenizer, max_new_tokens = 50, num_sequences = 1):
+    def __init__(self, *, model: AutoModelForCausalLM, tokenizer: AutoTokenizer, max_new_tokens = 20, num_sequences = 1):
         self.model = model
         self.tokenizer = tokenizer
         self.generator = TextGenerationPipeline(model=model, tokenizer=tokenizer, device=0)
