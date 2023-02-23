@@ -18,26 +18,16 @@ class GPTNeoWrap(AbstractLLM):
     max_length: int 
     num_sequences: int
 
-    def __init__(self, *, model: AutoModelForCausalLM, tokenizer: AutoTokenizer, max_length: int = 100, num_sequences: int = 1):
+    def __init__(self, *, model: AutoModelForCausalLM, tokenizer: AutoTokenizer):
         self.model = model
         self.tokenizer = tokenizer
         self.generator = TextGenerationPipeline(model=model, tokenizer=tokenizer, device=0)
-        self.max_length = max_length
-        self.num_sequences = num_sequences
 
     def generate(self, prompts: List[str], stop: Optional[List[str]] = None) -> LLMResult:
         generations = []
         for prompt in prompts:
             generated = self.generator(
                 prompt,
-                max_length=self.max_length,
-                do_sample=True,
-                top_k=50,
-                top_p=0.95,
-                num_return_sequences=self.num_sequences,
-                repetition_penalty=1.2,
-                temperature=1.0,
-                no_repeat_ngram_size=3,
             )
             generated = [Generation(text=gen['generated_text'][len(prompt):]) for gen in generated]
             generations.append(generated)

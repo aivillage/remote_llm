@@ -1,14 +1,12 @@
 """Wrapper around OpenAI APIs."""
 import logging
 from typing import (
-    Any,
     List,
     Optional,
 )
 
 from langchain.llms.base import BaseLLM
-from .llm_rpc.api import GenerateReplyGenerationList
-from .schema import Generation, LLMResult, unpack_result
+from .schema import LLMResult, unpack_result
 from .client import ClientLLM
 
 import asyncio
@@ -46,5 +44,3 @@ class ClientLangchain(BaseLLM):
         remote_type = loop.run_until_complete(self.client.get_llm_type())
         return f"remote:{remote_type.llm_type}"
     
-    def save(self, file_path: Any) -> None:
-        raise NotImplementedError("Cannot save remote LLMs.")

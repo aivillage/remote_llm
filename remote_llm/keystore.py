@@ -1,22 +1,19 @@
-import select
 from typing import Optional
-from sqlalchemy import String, Boolean
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import String, Integer, Boolean, Column
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import mapped_column
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 import uuid
 
-class Base(DeclarativeBase):
-    pass
+Base = declarative_base()
 
 class ApiKeys(Base):
     __tablename__ = "user_account"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String)
-    key: Mapped[str] = mapped_column(String)
-    admin: Mapped[bool] = mapped_column(Boolean)
+    id: Mapped[int] = Column(Integer, primary_key=True)
+    name: Mapped[str] = Column(String)
+    key: Mapped[str] = Column(String)
+    admin: Mapped[bool] = Column(Boolean)
     
     def __repr__(self) -> str:
         return f"User(id={self.id!r}, name={self.name!r}, key={self.key!r})"

@@ -72,8 +72,10 @@ class ClientLLM:
             if str(e).startswith('There is no current event loop in thread'):
                 loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-        else:
+        except:
             raise
+        else:
+            pass
 
         return loop.run_until_complete(self.generate_text(prompts))
     
@@ -84,6 +86,8 @@ class ClientLLM:
             if str(e).startswith('There is no current event loop in thread'):
                 loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-        else:
+        except:
             raise
+        else:
+            pass
         return loop.run_until_complete(self.llm_name())
