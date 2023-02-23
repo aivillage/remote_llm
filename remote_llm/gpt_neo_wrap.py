@@ -25,6 +25,7 @@ class GPTNeoWrap(AbstractLLM):
         self.generator = TextGenerationPipeline(model=model, tokenizer=tokenizer, device=0)
         self.max_new_tokens = max_new_tokens
         self.num_sequences = num_sequences
+        self.max_tokens = max_tokens
 
     def generate(self, prompts: List[str], stop: Optional[List[str]] = None) -> LLMResult:
         generations = []
