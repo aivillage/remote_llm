@@ -18,6 +18,9 @@ async def main():
     # Generate text.
     result = await client.generate_text(["This is a prompt."])
     print(f"Generated Text: {result}")
+    # Get generational guts.
+    guts = await client.generational_guts("This is a prompt.")
+    print(f"Generational Guts: {guts}")
 
 if __name__ == "__main__":
     asyncio.run(main())
