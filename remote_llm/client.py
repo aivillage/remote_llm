@@ -69,6 +69,7 @@ class ClientLLM:
         top_k_logits: int = 5,
         fft_embeddings: bool = True,
         embedding_trunkation: Optional[int] = 25,
+        response_type: Optional[str] = None,
     ) -> GenerationalGuts:
         """Get model info."""
         async with Channel(self.host, self.port, **self.channel_kwargs) as channel:
@@ -80,7 +81,12 @@ class ClientLLM:
                 fft_embeddings=fft_embeddings,
                 embedding_trunkation=embedding_trunkation,
             )
-            return unpack_generational_guts(result)
+            if response_type == 'json':
+                return result.to_json()
+            elif response_type == 'dict':
+                return result.to_dict()
+            else:
+                return unpack_generational_guts(result)
     
     def sync_generate_text(
         self, prompts: List[str],

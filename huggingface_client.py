@@ -19,7 +19,13 @@ async def main():
     result = await client.generate_text(["This is a prompt."])
     print(f"Generated Text: {result}")
     # Get generational guts.
+    # The default response is the closest to how the data flows in the model. 
     guts = await client.generational_guts("This is a prompt.")
+    print(f"Generational Guts: {guts}")
+
+    # If you want a JSON response, use the following:
+    # This is good for front ends that want to display the guts.
+    guts = await client.generational_guts("This is a prompt.", response_type="json")
     print(f"Generational Guts: {guts}")
 
 if __name__ == "__main__":
