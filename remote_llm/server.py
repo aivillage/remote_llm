@@ -10,7 +10,16 @@ import grpclib
 from transformers import TextGenerationPipeline, AutoTokenizer, AutoModelForCausalLM
 
 from .base_llm import AbstractLLM
-from .llm_rpc.api import GenerateRequest, GenerateReply, LLMTypeRequest, LLMTypeReply
+from .llm_rpc.api import (
+    GenerateRequest,
+    GenerateReply,
+    LLMTypeRequest,
+    LLMTypeReply,
+    GenerationalGutsRequest,
+    GenerationalGutsReply,
+    GenerationalGutsReplyTokenStack, 
+    GenerationalGutsReplyGeneration, 
+)
 from .schema import Generation, LLMResult, pack_result
 from .keystore import ApiKeystore
 logger = logging.getLogger(__name__)
@@ -56,6 +65,21 @@ class LLMService():
         msg = LLMTypeReply(llm_type=self.base_llm.llm_name())
         await stream.send_message(msg)
 
+    async def GenerationalGuts(self, stream: "grpclib.server.Stream[GenerationalGutsRequest, GenerationalGutsReply]") -> None:
+        request = await stream.recv_message()
+        user = self.check_key(request.api_key)
+        if user is None:
+            logging.info(f"Invalid API key, {request.api_key}")
+            return stream.send_message(GenerationalGutsReply())
+        logging.info(f"Getting generational guts for {user}")
+        text = request.prompt
+        top_k_logits = request.top_k_logits
+        fft_embeddings = request.fft_embeddings
+        embedding_trunkation = request.embedding_trunkation
+
+        generations = self.base_llm.get_generational_guts(text, top_k_logits=top_k_logits, fft=fft_embeddings, embedding_trunkation=embedding_trunkation)
+        await stream.send_message(generations.pack())
+
     def __mapping__(self) -> Dict[str, "grpclib.const.Handler"]:
         return {
             "/llm_rpc.api.RemoteLLM/Generate": grpclib.const.Handler(
@@ -69,5 +93,11 @@ class LLMService():
                 grpclib.const.Cardinality.UNARY_UNARY,
                 LLMTypeRequest,
                 LLMTypeReply,
+            ),
+            "/llm_rpc.api.RemoteLLM/GenerationalGuts": grpclib.const.Handler(
+                self.GenerationalGuts,
+                grpclib.const.Cardinality.UNARY_UNARY,
+                GenerationalGutsRequest,
+                GenerationalGutsReply,
             )
         }

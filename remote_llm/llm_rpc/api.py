@@ -42,6 +42,72 @@ class LLMTypeReply(betterproto.Message):
     llm_type: str = betterproto.string_field(1)
 
 
+@dataclass
+class GenerationalGutsRequest(betterproto.Message):
+    api_key: str = betterproto.string_field(1)
+    prompt: str = betterproto.string_field(2)
+    # / This performs a FFT of the token embeddings. It picks out the high
+    # frequency components of the embeddings.
+    fft_embeddings: bool = betterproto.bool_field(3)
+    # / This truncates the token embeddings so you can present the parts that
+    # have the most "information".
+    embedding_trunkation: int = betterproto.int32_field(4)
+    # / This controls how many possible next tokens are returned.
+    top_k_logits: int = betterproto.int32_field(5)
+
+
+@dataclass
+class GenerationalGutsReply(betterproto.Message):
+    tokens: List["GenerationalGutsReplyTokenStack"] = betterproto.message_field(1)
+    generations: List["GenerationalGutsReplyGeneration"] = betterproto.message_field(2)
+
+
+@dataclass
+class GenerationalGutsReplyTokenStack(betterproto.Message):
+    """
+    / The token stack is a trace of the LLM's internal state as it processes
+    the prompt./ The string is tokenized, which takes chunks of the string and
+    converts them into a lookup index./ The lookup index is then used to look
+    up the token embedding for the token./ The token embedding is then combined
+    with the positional embedding to create the token embedding./ The token
+    embedding is then passed through the LLM to produce the hidden state./ The
+    hidden state is then used to generate the next token. This stack does not
+    include the
+    """
+
+    # / The token string. This is the original token string, not the token id./
+    # Example: "the"
+    token: str = betterproto.string_field(1)
+    # / The token id. This is the lookup index for the token in the embedding./
+    # Example: 464 is the lookup index for "the" in the GPT-2 embedding.
+    token_id: int = betterproto.int32_field(2)
+    # / The positional embedding for the token. This encodes which position the
+    # token is in the sequence.
+    positional_embedding: List[float] = betterproto.float_field(3)
+    # / The token embedding for the token. This is the embedding for the token
+    # itself that has semantic meaning./ It's position in the high dimensional
+    # embedding space encodes the "meaning" of the token for the LLM.
+    token_embedding: List[float] = betterproto.float_field(4)
+    # / The hidden state of the token. This is the output of the LLM after
+    # processing the token./ This is also called the "context embedding".
+    hidden_state: List[float] = betterproto.float_field(5)
+
+
+@dataclass
+class GenerationalGutsReplyGeneration(betterproto.Message):
+    """
+    / Each generation is a possible next token and its probability. They are
+    determined by the a map from the final hidden state/ to the "token space".
+    The token space is the space of all possible tokens that the LLM can
+    generate.// We return the top_k tokens (by probability) and their
+    probabilities.
+    """
+
+    token: str = betterproto.string_field(1)
+    id: int = betterproto.int32_field(2)
+    logit: float = betterproto.float_field(3)
+
+
 class RemoteLLMStub(betterproto.ServiceStub):
     async def generate(
         self, *, api_key: str = "", prompts: List[str] = [], stop: List[str] = []
@@ -65,4 +131,26 @@ class RemoteLLMStub(betterproto.ServiceStub):
             "/llm_rpc.api.RemoteLLM/GetLlmType",
             request,
             LLMTypeReply,
+        )
+
+    async def generational_guts(
+        self,
+        *,
+        api_key: str = "",
+        prompt: str = "",
+        fft_embeddings: bool = False,
+        embedding_trunkation: int = 0,
+        top_k_logits: int = 0,
+    ) -> GenerationalGutsReply:
+        request = GenerationalGutsRequest()
+        request.api_key = api_key
+        request.prompt = prompt
+        request.fft_embeddings = fft_embeddings
+        request.embedding_trunkation = embedding_trunkation
+        request.top_k_logits = top_k_logits
+
+        return await self._unary_unary(
+            "/llm_rpc.api.RemoteLLM/GenerationalGuts",
+            request,
+            GenerationalGutsReply,
         )

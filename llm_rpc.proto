@@ -28,7 +28,64 @@ message LLMTypeReply {
     string llm_type = 1;
 }
 
+message GenerationalGutsRequest {
+    string api_key = 1;
+    string prompt = 2;
+    /// This performs a FFT of the token embeddings. It picks out the high frequency components of the embeddings.
+    ///
+    /// Leave this on by setting this to true unless you have a good reason to turn it off.
+    bool fft_embeddings = 3;
+    /// This truncates the token embeddings so you can present the parts that have the most "information".
+    ///
+    /// A good default is 10-30
+    int32 embedding_trunkation = 4;
+
+    /// This controls how many possible next tokens are returned.
+    ///
+    /// A good default is 3-5
+    int32 top_k_logits = 5;
+}
+
+message GenerationalGutsReply {
+    /// The token stack is a trace of the LLM's internal state as it processes the prompt.
+    /// The string is tokenized, which takes chunks of the string and converts them into a lookup index.
+    /// The lookup index is then used to look up the token embedding for the token.
+    /// The token embedding is then combined with the positional embedding to create the token embedding.
+    /// The token embedding is then passed through the LLM to produce the hidden state.
+    /// The hidden state is then used to generate the next token. This stack does not include the 
+    message TokenStack {
+        /// The token string. This is the original token string, not the token id.
+        /// Example: "the"
+        string token = 1;
+        /// The token id. This is the lookup index for the token in the embedding.
+        /// Example: 464 is the lookup index for "the" in the GPT-2 embedding.
+        int32 token_id = 2;
+        /// The positional embedding for the token. This encodes which position the token is in the sequence.
+        repeated float positional_embedding = 3;
+        /// The token embedding for the token. This is the embedding for the token itself that has semantic meaning.
+        /// It's position in the high dimensional embedding space encodes the "meaning" of the token for the LLM.
+        repeated float token_embedding = 4;
+        /// The hidden state of the token. This is the output of the LLM after processing the token.
+        /// This is also called the "context embedding".
+        repeated float hidden_state = 5;
+    }
+
+    /// Each generation is a possible next token and its probability. They are determined by the a map from the final hidden state
+    /// to the "token space". The token space is the space of all possible tokens that the LLM can generate.
+    ///
+    /// We return the top_k tokens (by probability) and their probabilities.
+    message Generation {
+        string token = 1;
+        int32 id = 2;
+        float logit = 3;
+    }
+
+    repeated TokenStack tokens = 1;
+    repeated Generation generations = 2;
+}
+
 service RemoteLLM {
     rpc Generate(GenerateRequest) returns (GenerateReply) {}
     rpc GetLlmType(LLMTypeRequest) returns (LLMTypeReply) {}
+    rpc GenerationalGuts(GenerationalGutsRequest) returns (GenerationalGutsReply) {}
 }

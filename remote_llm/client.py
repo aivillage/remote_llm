@@ -7,7 +7,7 @@ from typing import (
 from grpclib.client import Channel
 
 from .llm_rpc.api import RemoteLLMStub, GenerateReplyGenerationList
-from .schema import Generation, LLMResult
+from .schema import Generation, LLMResult, unpack_generational_guts, GenerationalGuts
 
 import asyncio
 try:
@@ -62,6 +62,25 @@ class ClientLLM:
             client = RemoteLLMStub(channel)
             result = await client.get_llm_type(api_key=self.api_key)
             return result.llm_type
+        
+    async def generational_guts(
+        self,
+        text: str, *,
+        top_k_logits: int = 5,
+        fft_embeddings: bool = True,
+        embedding_trunkation: Optional[int] = 25,
+    ) -> GenerationalGuts:
+        """Get model info."""
+        async with Channel(self.host, self.port, **self.channel_kwargs) as channel:
+            client = RemoteLLMStub(channel)
+            result = await client.generational_guts(
+                prompt=text,
+                api_key=self.api_key,
+                top_k_logits=top_k_logits,
+                fft_embeddings=fft_embeddings,
+                embedding_trunkation=embedding_trunkation,
+            )
+            return unpack_generational_guts(result)
     
     def sync_generate_text(
         self, prompts: List[str],
@@ -91,3 +110,16 @@ class ClientLLM:
         else:
             pass
         return loop.run_until_complete(self.llm_name())
+    
+    def sync_generational_guts(self, text: str) -> GenerationalGuts:
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError as e:
+            if str(e).startswith('There is no current event loop in thread'):
+                loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        except:
+            raise
+        else:
+            pass
+        return loop.run_until_complete(self.generational_guts(text))
