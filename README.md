@@ -14,3 +14,9 @@ python -m grpc_tools.protoc -I . --python_betterproto_out=remote_llm llm_rpc.pro
 ## Testing
 
 First start the service LLM with `python mock_llm.py` in one terminal, then in another terminal run the tests with `pytest`. Once it passes all those test, run the example server and 
+
+
+## Building
+```bash
+> python -m build
+```
