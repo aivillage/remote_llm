@@ -5,15 +5,17 @@ build-backend = "setuptools.build_meta"
 
 [metadata]
 
-
 [project]
 name = "remote_llm"
 version = "0.0.1"
 description = "Remote LLM"
 authors = [
-{name = "Sven", email = "code@aivillage.org"},]
+{name = "Comath", email = "code@aivillage.org"},]
 requires-python = ">=3.9"
 dynamic = ["dependencies"]
+
+[project.urls]
+"Homepage" = "https://github.com/comath/remote_llm"
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}

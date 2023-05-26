@@ -4,4 +4,5 @@ __pycache__
 *.egg
 cache
 *.db
-dist/
+dist
+.vscode

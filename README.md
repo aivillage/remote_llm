@@ -17,6 +17,5 @@ First start the service LLM with `python mock_llm.py` in one terminal, then in a
 
 
 ## Building
-```bash
-> python -m build
-```
+
+`python -m build`
